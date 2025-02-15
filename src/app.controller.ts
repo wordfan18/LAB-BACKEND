@@ -1,6 +1,6 @@
-import { Body, Controller, Delete, Get, Param, Post, Put } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Put, Query, Res, UploadedFile, UseInterceptors } from '@nestjs/common';
 import { AppService } from './app.service';
-import { ApiBody } from '@nestjs/swagger';
+import { ApiBody, ApiConsumes } from '@nestjs/swagger';
 import { CreateMahasiswaDto } from './dto/create-mahasiswa.dto';
 import {UpdateMahasiswaDto } from './dto/update-mahasiswa.dto';
 import { RegisterUserDto } from './dto/register-user.dto';
@@ -10,6 +10,9 @@ import { UserDecorator } from './user.decorator';
 import { User } from './entity/user.entity';
 import { UseGuards } from '@nestjs/common';
 import { ApiBearerAuth } from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { FileUploadDto } from './dto/file-upload.dto';
+import { Response } from 'express';
 
 @Controller()
 export class AppController {
@@ -41,6 +44,28 @@ export class AppController {
   return user
  }
 
+ @Post('mahasiswa/:nim/upload-gambar')
+ @UseInterceptors(FileInterceptor('file'))
+ @ApiConsumes('multipart/form-data')
+ @ApiBody({ type: FileUploadDto })
+ uploadMahasiswaGambar(@Param('nim') nim: string, @UploadedFile() file: Express.Multer.File) {
+   return this.appService.uploadMahasiswaGambar(nim, file);
+ }
+
+ @Get('mahasiswa/:nim/gambar')
+ async getMahasiswaGambar(@Param('nim') nim: string, @Res() res : Response) {
+   const name = await this.appService.getMahasiswaFoto(nim);
+   res.sendFile(name, { root: 'uploads' });
+
+ }
+ @Get('mahasiswa/search')
+  async searchMahasiswa(
+    // @Query('nama')nama?:string,
+    @Query('nim')nim? : string
+  ){   
+    return this.appService.searchMahasiswa(nim)
+  }
+
 
 
   @Get("mahasiswa/:nim")
@@ -65,8 +90,11 @@ export class AppController {
   @ApiBody({type: UpdateMahasiswaDto})
   editMahasiswa(
     @Param("nim") nim: string,
-    @Body(){nama} : UpdateMahasiswaDto 
+    @Body() nama : UpdateMahasiswaDto 
   ){
     return this.appService.updateMahasiswa(nim,nama);
   }
+
+ 
+
 }
